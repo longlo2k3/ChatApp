@@ -3,7 +3,7 @@ import type { Conversation, Message, Participant } from "@/types/chat";
 import UserAvatar from "./UserAvatar";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { Download, FileText } from "lucide-react";
+import { Download } from "lucide-react";
 
 interface MessageItemProps {
   message: Message;
@@ -16,7 +16,7 @@ interface MessageItemProps {
 const isImageType = (type: string | null | undefined) =>
   type?.startsWith("image/");
 
-const getFileEmoji = (type: string | null | undefined) => {
+const getFileIcon = (type: string | null | undefined) => {
   if (!type) return "📎";
   if (type.startsWith("video/")) return "🎬";
   if (type.startsWith("audio/")) return "🎵";
@@ -50,6 +50,7 @@ const MessageItem = ({
 
   const hasFile = !!message.fileUrl;
   const hasImage = hasFile && isImageType(message.fileType);
+  const hasNonImageFile = hasFile && !hasImage;
   const hasContent = !!message.content?.trim();
 
   return (
@@ -83,113 +84,116 @@ const MessageItem = ({
         {/* tin nhắn */}
         <div
           className={cn(
-            "max-w-xs lg:max-w-md space-y-1 flex flex-col",
+            "max-w-xs lg:max-w-md flex flex-col gap-1",
             message.isOwn ? "items-end" : "items-start",
           )}
         >
-          <Card
-            className={cn(
-              "overflow-hidden",
-              hasFile && !hasContent ? "p-0" : "p-3",
-              message.isOwn
-                ? "chat-bubble-sent border-0"
-                : "chat-bubble-received",
-            )}
-          >
-            {/* Image attachment */}
-            {hasImage && (
-              <a
-                href={message.fileUrl!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block group/img"
-              >
-                <div className={cn(
-                  "relative overflow-hidden",
-                  hasContent ? "rounded-md mb-2" : "rounded-sm",
-                )}>
-                  <img
-                    src={message.fileUrl!}
-                    alt={message.fileName || "image"}
-                    className="max-w-full max-h-[300px] object-cover transition-transform duration-300 group-hover/img:scale-105"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors duration-200" />
-                </div>
-              </a>
-            )}
+          {/* ── Image attachment (Messenger-style: standalone, no bubble) ── */}
+          {hasImage && (
+            <a
+              href={message.fileUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block group/img"
+            >
+              <div className="relative overflow-hidden rounded-2xl shadow-sm">
+                <img
+                  src={message.fileUrl!}
+                  alt={message.fileName || "image"}
+                  className="max-w-full max-h-[300px] object-cover transition-transform duration-300 group-hover/img:scale-105"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors duration-200 rounded-2xl" />
+              </div>
+            </a>
+          )}
 
-            {/* Non-image file attachment */}
-            {hasFile && !hasImage && (
-              <a
-                href={message.fileUrl!}
-                target="_blank"
-                rel="noopener noreferrer"
-                download={message.fileName || undefined}
-                className="block"
-              >
-                <div className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg transition-colors duration-200",
+          {/* ── Non-image file attachment (Messenger-style card) ── */}
+          {hasNonImageFile && (
+            <a
+              href={message.fileUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              download={message.fileName || undefined}
+              className="block w-full group/file"
+            >
+              <div
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all duration-200",
                   message.isOwn
-                    ? "bg-white/10 hover:bg-white/20"
-                    : "bg-muted/50 hover:bg-muted",
-                  hasContent && "mb-2",
-                )}>
-                  <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-lg",
-                    message.isOwn ? "bg-white/20" : "bg-primary/10",
-                  )}>
-                    {getFileEmoji(message.fileType)}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      "text-sm font-medium truncate",
-                      message.isOwn ? "text-white" : "text-foreground",
-                    )}>
-                      {message.fileName || "Tệp đính kèm"}
-                    </p>
-                    {message.fileSize && (
-                      <p className={cn(
-                        "text-xs",
-                        message.isOwn ? "text-white/60" : "text-muted-foreground",
-                      )}>
-                        {formatFileSize(message.fileSize)}
-                      </p>
-                    )}
-                  </div>
-
-                  <Download className={cn(
-                    "size-4 flex-shrink-0 opacity-60",
-                    message.isOwn ? "text-white" : "text-muted-foreground",
-                  )} />
+                    ? "bg-gradient-to-r from-blue-500/90 to-indigo-500/90 border-white/10 hover:from-blue-500 hover:to-indigo-500 shadow-md"
+                    : "bg-card border-border/60 hover:bg-accent/50 shadow-sm",
+                )}
+              >
+                {/* File icon */}
+                <div
+                  className={cn(
+                    "w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-xl",
+                    message.isOwn
+                      ? "bg-white/20"
+                      : "bg-primary/10",
+                  )}
+                >
+                  {getFileIcon(message.fileType)}
                 </div>
-              </a>
-            )}
 
-            {/* Text content */}
-            {hasContent && (
-              <p className={cn(
-                "text-sm leading-relaxed break-words",
-                hasFile && "px-3 pb-3",
-                hasFile && !hasContent && "pt-3",
-              )}>
+                {/* File info */}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={cn(
+                      "text-sm font-semibold truncate",
+                      message.isOwn ? "text-white" : "text-foreground",
+                    )}
+                  >
+                    {message.fileName || "Tệp đính kèm"}
+                  </p>
+                  <p
+                    className={cn(
+                      "text-xs mt-0.5",
+                      message.isOwn ? "text-white/60" : "text-muted-foreground",
+                    )}
+                  >
+                    {message.fileSize ? formatFileSize(message.fileSize) : "Tệp đính kèm"}
+                  </p>
+                </div>
+
+                {/* Download icon */}
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-200",
+                    message.isOwn
+                      ? "bg-white/15 group-hover/file:bg-white/25"
+                      : "bg-muted group-hover/file:bg-primary/10",
+                  )}
+                >
+                  <Download
+                    className={cn(
+                      "size-4",
+                      message.isOwn ? "text-white" : "text-muted-foreground",
+                    )}
+                  />
+                </div>
+              </div>
+            </a>
+          )}
+
+          {/* ── Text content bubble ── */}
+          {hasContent && (
+            <Card
+              className={cn(
+                "overflow-hidden p-3",
+                message.isOwn
+                  ? "chat-bubble-sent border-0"
+                  : "chat-bubble-received",
+              )}
+            >
+              <p className="text-sm leading-relaxed break-words">
                 {message.content}
               </p>
-            )}
+            </Card>
+          )}
 
-            {/* Show file name under image */}
-            {hasImage && message.fileName && !hasContent && (
-              <p className={cn(
-                "text-xs px-3 pb-2 pt-1 truncate",
-                message.isOwn ? "text-white/60" : "text-muted-foreground",
-              )}>
-                {message.fileName}
-              </p>
-            )}
-          </Card>
-
-          {/* seen/ delivered */}
+          {/* seen / delivered */}
           {message.isOwn && message._id === selectedConvo.lastMessage?._id && (
             <Badge
               variant="outline"
